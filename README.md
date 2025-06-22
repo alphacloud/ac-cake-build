@@ -3,11 +3,120 @@ Cake build script
 
 ## Overview
 
-This repository contains reusable Cake build scripts for .NET projects. It provides standardized build tasks and definitions that can be shared across multiple projects as a Git submodule, ensuring consistent build processes and easy maintenance.
+This repository contains reusable Cake build scripts for .NET projects. 
+It provides standardized build tasks and definitions that can be shared across multiple projects as a Git submodule, ensuring consistent build processes and easy maintenance.
+
+## Script structure
+
+**Settings (`definitions.cake`)**
+
+`ProjectSettings` - Main configuration class:
+- `RepoOwner` - GitHub repository owner/organization
+- `RepoName` - GitHub repository name  
+- `SolutionName` - Solution file name
+- `CodeCoverage` - Code coverage configuration
+
+`CodeCoverageSettings` - Coverage filters:
+- `IncludeFilter` - Assemblies to include (default: `+[SolutionName*]*`)
+- `ExcludeFilter` - Assemblies to exclude (default: test assemblies, Microsoft libraries)
+- `ExcludeByFile` - Files to exclude (default: Designer files)
+- `ExcludeByAttribute` - Attributes to exclude (default: ExcludeFromCodeCoverage)
+
+`BuildInfo` - Runtime build information:
+- `Target` - Build target (default: "Default")
+- `Config` - Build configuration (default: "Release")
+- `Version` - Semantic version information
+- `Repository` - Git repository state
+- `Paths` - Standard project paths
+
+**Available Tasks (`tasks.cake`)**
+
+Core Tasks:
+- `CleanAll` - Clean bin/obj directories and artifacts
+- `SetVersion` - Generate AssemblyVersion.cs with version info
+- `Restore` - Restore NuGet packages
+- `Build` - Build solution (Debug + Release for coverage)
+
+Testing Tasks:
+- `RunXunitTests` - Execute unit tests with OpenCover
+- `CleanPreviousTestResults` - Clean test artifacts
+- `GenerateCoverageReport` - Generate HTML coverage report (local only)
+- `UploadCoverage` - Upload coverage to Coveralls (CI only)
+- `RunUnitTests` - Combined test execution pipeline
+
+Release Tasks:
+- `CreateNugetPackages` - Pack NuGet packages
+- `UpdateReleaseNotesLink` - Update package release notes URL
+- `CreateRelease` - Create GitHub release (release branches only)
+- `CloseMilestone` - Close GitHub milestone (tagged builds only)
+
+Default Pipeline:
+`Default` → `Build` → `RunUnitTests` → `CreateNugetPackages` → `CreateRelease` → `CloseMilestone`
+
+### Project structure conventions
+
+**Required Directory Structure:**
+```
+project-root/
+├── .build/                    # Build system submodule
+├── src/
+│   ├── common/
+│   │   └── AssemblyVersion.cs # Generated version file
+│   ├── lib/                   # Library projects
+│   ├── tests/                 # Test projects
+│   ├── samples/               # Sample projects (optional)
+│   ├── [SolutionName].sln     # Solution file
+│   └── Directory.Build.props  # Common MSBuild properties
+├── artifacts/                 # Build output (auto-created)
+├── build.cake                 # Main build script
+├── GitVersion.yml         # Version calculation
+└── GitReleaseManager.yaml # GitHub release configuration  
+
+```
+
+**Required Configuration Files:**
+
+`build.cake` - Main build script
+`GitVersion.yml` - Version calculation
+`GitReleaseManager.yaml` - GitHub release configuration  
+`src/Directory.Build.props` - MSBuild properties
+
+`GitVersion.yml` example:
+```yaml
+branches: {}
+ignore:
+  sha: []
+tag-prefix: 'releases?/'
+```
+
+`GitReleaseManager.yaml` example:
+```yaml
+create:
+  include-footer: true
+  footer-heading: Where to get it
+  footer-content: You can download this release from [nuget.org](https://www.nuget.org/packages/package-name/{milestone})
+  footer-includes-milestone: true
+```
+
+**Required Environment Variables:**
+
+**CI/CD (AppVeyor):**
+- `COVERALLS_REPO_TOKEN` - Coveralls.io API token
+- `GITHUB_TOKEN` - GitHub API token for releases
+
+**NuGet Publishing:**
+- NuGet API key (encrypted in appveyor.yml)
+- Deploy triggers for develop/release branches and tags
+
+**Project Naming Conventions:**
+- Solution name matches repository name
+- Test projects contain "Tests" in name
+- Sample projects under `Samples/` folder
+- Library projects under `Lib/` folder
 
 ## Adding as Submodule
 
-Always pin specific version when adding submodule. Assume `1.0.01` as a version to use.
+Always pin specific version when adding submodule. Assume `1.0.0` as a version to use.
 To add this repository as a submodule to your parent project.
 
 ```bash
@@ -69,6 +178,7 @@ dotnet tool install coveralls.net --version 4.0.1 --global
 ```
 
 ### Project structure and conventions
+
 
 
 ## Cloning Parent Project with Submodules

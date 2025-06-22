@@ -1,6 +1,24 @@
 # ac-cake-build
 Cake build script
 
+## Table of Contents
+
+- [ac-cake-build](#ac-cake-build)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+  - [Script structure](#script-structure)
+    - [Project structure conventions](#project-structure-conventions)
+  - [Adding as Submodule](#adding-as-submodule)
+  - [Using the Build Scripts](#using-the-build-scripts)
+    - [Create Cake script](#create-cake-script)
+    - [Install tools](#install-tools)
+    - [Project structure and conventions](#project-structure-and-conventions)
+  - [Cloning Parent Project with Submodules](#cloning-parent-project-with-submodules)
+  - [Updating Build System](#updating-build-system)
+  - [Removing Submodule](#removing-submodule)
+  - [Versioning](#versioning)
+  - [Changelog](#changelog)
+
 ## Overview
 
 This repository contains reusable Cake build scripts for .NET projects. 
@@ -76,10 +94,10 @@ project-root/
 
 **Required Configuration Files:**
 
-`build.cake` - Main build script
-`GitVersion.yml` - Version calculation
-`GitReleaseManager.yaml` - GitHub release configuration  
-`src/Directory.Build.props` - MSBuild properties
+* `build.cake` - Main build script
+* `GitVersion.yml` - Version calculation
+* `GitReleaseManager.yaml` - GitHub release configuration  
+* `src/Directory.Build.props` - MSBuild properties
 
 `GitVersion.yml` example:
 ```yaml

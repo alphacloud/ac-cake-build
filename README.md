@@ -34,11 +34,11 @@ It provides standardized build tasks and definitions that can be shared across m
 - `SolutionName` - Solution file name
 - `CodeCoverage` - Code coverage configuration
 
-`CodeCoverageSettings` - Coverage filters:
-- `IncludeFilter` - Assemblies to include (default: `+[SolutionName*]*`)
-- `ExcludeFilter` - Assemblies to exclude (default: test assemblies, Microsoft libraries)
-- `ExcludeByFile` - Files to exclude (default: Designer files)
-- `ExcludeByAttribute` - Attributes to exclude (default: ExcludeFromCodeCoverage)
+`CodeCoverageSettings` - Coverage filters (Coverlet format):
+- `IncludeFilter` - Assemblies to include, `[Assembly]Type` entries (default: `[SolutionName*]*`)
+- `ExcludeFilter` - Assemblies to exclude, `[Assembly]Type` entries (default: test assemblies, Microsoft libraries)
+- `ExcludeByFile` - Glob pattern for files to exclude (default: `**/*Designer.cs`)
+- `ExcludeByAttribute` - Attribute short name to exclude (default: `ExcludeFromCodeCoverage`)
 
 `BuildInfo` - Runtime build information:
 - `Target` - Build target (default: "Default")
@@ -56,7 +56,7 @@ Core Tasks:
 - `Build` - Build solution (Debug + Release for coverage)
 
 Testing Tasks:
-- `RunXunitTests` - Execute unit tests with OpenCover
+- `RunXunitTests` - Execute unit tests with Coverlet code coverage collection
 - `CleanPreviousTestResults` - Clean test artifacts
 - `GenerateCoverageReport` - Generate HTML coverage report (local only)
 - `UploadCoverage` - Upload coverage to Coveralls (CI only)
@@ -161,7 +161,8 @@ ProjectSettings settings = new ProjectSettings("OrganizationName", "Repository-N
 {
     CodeCoverage =
     {
-        IncludeFilter = "+[SolutionName.*]*"
+        // Coverlet filter syntax: [Assembly]TypeName
+        IncludeFilter = new List<string> { "[SolutionName.*]*" }
     }
 };
 

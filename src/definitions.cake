@@ -1,21 +1,36 @@
 // ADDINS
-#addin nuget:?package=Cake.Coveralls&version=4.0.0
-#addin nuget:?package=Cake.FileHelpers&version=7.0.0
-#addin nuget:?package=Cake.AppVeyor&version=6.0.0
+#addin nuget:?package=Cake.Coveralls&version=6.0.0
+#addin nuget:?package=Cake.Coverlet&version=6.0.1
+#addin nuget:?package=Cake.FileHelpers&version=9.0.0
+#addin nuget:?package=Cake.AppVeyor&version=10.0.0
 
 // TOOLS
-#tool nuget:?package=GitReleaseManager&version=0.20.0
-#tool nuget:?package=GitVersion.CommandLine&version=5.12.0
-#tool nuget:?package=OpenCover&version=4.7.1221
+#tool nuget:?package=GitReleaseManager.Tool&version=0.20.0
+#tool "dotnet:?package=GitVersion.Tool&version=6.0.0"
 #tool nuget:?package=ReportGenerator&version=5.4.8
 
 
 public class CodeCoverageSettings
 {
-    public string ExcludeByFile { get; set; } = "*/*Designer.cs";
-    public string ExcludeByAttribute { get; set; } = "*.ExcludeFromCodeCoverage*";
-    public string ExcludeFilter { get; set; } = "-[Tests*]*;-[*]Microsoft.CodeAnalysis*;-[*]System.Runtime.CompilerServices.*";
-    public string IncludeFilter { get; set; }
+    /// <summary>
+    /// Glob pattern to exclude source files from coverage (Coverlet format, e.g. "**/*Designer.cs").
+    /// </summary>
+    public string ExcludeByFile { get; set; } = "**/*Designer.cs";
+
+    /// <summary>
+    /// Attribute short name used to exclude members from coverage (e.g. "ExcludeFromCodeCoverage").
+    /// </summary>
+    public string ExcludeByAttribute { get; set; } = "ExcludeFromCodeCoverage";
+
+    /// <summary>
+    /// Coverlet exclude filters in [Assembly]Type format, e.g. "[Tests*]*".
+    /// </summary>
+    public List<string> ExcludeFilter { get; set; } = new List<string> { "[Tests*]*", "[*]Microsoft.CodeAnalysis*", "[*]System.Runtime.CompilerServices.*" };
+
+    /// <summary>
+    /// Coverlet include filters in [Assembly]Type format, e.g. "[SolutionName.*]*".
+    /// </summary>
+    public List<string> IncludeFilter { get; set; } = new List<string>();
 }
 
 // params
@@ -40,7 +55,7 @@ public class ProjectSettings {
         SolutionName = solutionName;
 
         CodeCoverage = new CodeCoverageSettings {
-            IncludeFilter = $"+[solutionName*]*"
+            IncludeFilter = new List<string> { $"[{solutionName}*]*" }
         };
     }
 }
@@ -101,6 +116,11 @@ public class Paths {
     public DirectoryPath RootDir { get; }
     public string SrcDir { get; set; }
     public string ArtifactsDir { get; set; }
+    /// <summary>Glob matching the per-TargetFramework OpenCover XML files Coverlet writes (e.g. coverage.net10.0.opencover.xml). Consumed by ReportGenerator, which can merge multiple inputs into one report.</summary>
+    public string TestCoverageGlobPattern { get; set; }
+    /// <summary>Raw per-TFM OpenCover XML Coverlet writes for the primary framework; copied to <see cref="TestCoverageOutputFile"/> since Coverlet always suffixes multi-targeted output with the TFM.</summary>
+    public string PrimaryCoverageSourceFile { get; set; }
+    /// <summary>Flat (no-TFM) OpenCover XML used for Coveralls upload (CoverallsNet has no multi-file/glob overload).</summary>
     public string TestCoverageOutputFile { get; set; }
     public string TestCoverageReportDir { get; set; }
     public string PackagesDir { get; set; }
@@ -114,7 +134,9 @@ public class Paths {
         RootDir = context.MakeAbsolute(context.Directory("./"));
         SrcDir = RootDir.Combine("src").ToString();
         ArtifactsDir = RootDir.Combine("artifacts").ToString();
-        TestCoverageOutputFile = ArtifactsDir + "/OpenCover.xml";
+        TestCoverageGlobPattern = ArtifactsDir + "/coverage.*.opencover.xml";
+        PrimaryCoverageSourceFile = ArtifactsDir + "/coverage.net10.0.opencover.xml";
+        TestCoverageOutputFile = ArtifactsDir + "/coverage.opencover.xml";
         TestCoverageReportDir = ArtifactsDir + "/CodeCoverageReport";
         PackagesDir = ArtifactsDir + "/packages";
         BuildPropsFile = SrcDir + "/Directory.Build.props";
@@ -151,18 +173,37 @@ public class BuildInfo {
             throw new ArgumentNullException(nameof(context));
         var target = context.Argument("target", "Default");
         var config = context.Argument("buildConfig", "Release");
-        var buildSystem = context.BuildSystem();
 
-        // Calculate version and commit hash
-        GitVersion semVersion = context.GitVersion();
-        var version = new BuildVersion(
-            semVersion.NuGetVersion,
-            semVersion.FullBuildMetaData,
-            semVersion.InformationalVersion,
-            $"{semVersion.Major+1}.0.0",
-            semVersion.Sha,
-            semVersion.MajorMinorPatch
-        );
+        var buildSystem = context.BuildSystem();
+        var repositoryInfo = RepositoryInfo.Get(buildSystem, settings);
+        BuildVersion version;
+
+        if (repositoryInfo.IsPullRequest) {
+            // GitVersion fails on PR builds, use 0.PullRequestId.BuildNumber as a version number
+            var buildVersion = $"0.{buildSystem.AppVeyor.Environment.PullRequest.Number}.{buildSystem.AppVeyor.Environment.Build.Number}";
+            var commitHash = buildSystem.AppVeyor.Environment.Repository.Commit.Id;
+
+            version = new BuildVersion(
+                buildVersion,
+                $"{buildVersion}/{commitHash}-PR-{buildSystem.AppVeyor.Environment.PullRequest.Title}",
+                buildVersion,
+                $"{buildVersion}.0",
+                commitHash,
+                buildVersion
+            );
+        }
+        else {
+            // Calculate version and commit hash
+            GitVersion semVersion = context.GitVersion();
+            version = new BuildVersion(
+                semVersion.NuGetVersion,
+                semVersion.FullBuildMetaData,
+                semVersion.InformationalVersion,
+                $"{semVersion.Major+1}.0.0",
+                semVersion.Sha,
+                semVersion.MajorMinorPatch
+            );
+        }
 
         var gitHubToken = context.EnvironmentVariable("GITHUB_TOKEN");
 
@@ -181,5 +222,3 @@ public class BuildInfo {
         };
     }
 }
-
-

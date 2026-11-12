@@ -1,0 +1,4 @@
+<Project>
+  <!-- Stops MSBuild from importing ac-cake-build's own Src/Directory.Build.props:
+       the sample behaves like a standalone consumer repository. -->
+</Project>

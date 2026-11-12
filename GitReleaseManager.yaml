@@ -1,0 +1,41 @@
+create:
+  include-footer: true
+  footer-heading: Where to get it
+  footer-content: You can download this release from [nuget.org](https://www.nuget.org/packages/Alphacloud.CakeBuild/{milestone})
+  footer-includes-milestone: true
+  milestone-replace-text: '{milestone}'
+
+issue-labels-include:
+  - breaking-change
+  - bug
+  - build
+  - dependencies
+  - documentation
+  - enhancement
+  - feature
+
+issue-labels-exclude:
+  - duplicate
+  - invalid
+  - question
+  - wontfix
+
+issue-labels-alias:
+  - name: breaking-change
+    header: Breaking Change
+    plural: Breaking Changes
+  - name: bug
+    header: Bug fixed
+    plural: Bugs fixed
+  - name: dependencies
+    header: Dependency upgraded
+    plural: Dependencies upgraded
+  - name: documentation
+    header: Documentation
+    plural: Documentation
+  - name: enhancement
+    header: Enhancement
+    plural: Enhancements
+  - name: feature
+    header: New feature
+    plural: New features

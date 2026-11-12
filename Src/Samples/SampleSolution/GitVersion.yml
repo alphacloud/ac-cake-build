@@ -1,0 +1,22 @@
+mode: ContinuousDelivery
+
+branches:
+  master:
+    label: ''
+    regex: ^master$
+    increment: patch
+    is-release-branch: true
+
+  develop:
+    label: alpha
+    increment: minor
+    is-release-branch: false
+
+  release:
+    regex: ^releases?[/-](?<BranchName>.+)
+    label: rc
+    increment: none
+    is-release-branch: true
+
+ignore:
+  sha: []

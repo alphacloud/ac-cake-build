@@ -1,0 +1,41 @@
+<Project>
+  <PropertyGroup Label="Build targets">
+    <LibraryTargetFrameworks>netstandard2.0;net8.0;net10.0</LibraryTargetFrameworks>
+    <AppTargetFrameworks>net8.0;net10.0</AppTargetFrameworks>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Build">
+    <Product>SampleSolution</Product>
+    <Authors>Alphacloud</Authors>
+    <TargetFrameworks>$(LibraryTargetFrameworks)</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
+    <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
+    <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Package">
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/alphacloud/ac-cake-build</PackageProjectUrl>
+    <PackageReleaseNotes>https://github.com/alphacloud/ac-cake-build/releases</PackageReleaseNotes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Common/AssemblyVersion.cs" Link="Properties/AssemblyVersion.cs"
+             Condition="Exists('$(MSBuildThisFileDirectory)Common/AssemblyVersion.cs')" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(MSBuildProjectName.Contains(Tests))' == true">
+    <TargetFrameworks>$(AppTargetFrameworks)</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(MSBuildProjectName.Contains(Tests))' == true">
+    <PackageReference Include="xunit.v3" Version="4.0.3" />
+    <Using Include="Xunit" />
+  </ItemGroup>
+</Project>

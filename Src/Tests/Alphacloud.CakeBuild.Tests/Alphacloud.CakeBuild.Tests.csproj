@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Alphacloud.CakeBuild.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Lib\Alphacloud.CakeBuild\Alphacloud.CakeBuild.csproj" />
+  </ItemGroup>
+
+</Project>

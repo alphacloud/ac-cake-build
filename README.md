@@ -1,253 +1,325 @@
-# ac-cake-build
-Cake build script
+# Alphacloud.CakeBuild
 
-## Table of Contents
+Reusable [Cake Frosting](https://cakebuild.net/docs/running-builds/runners/cake-frosting) build pipeline for
+multi-target .NET libraries, distributed as the NuGet package **`Alphacloud.CakeBuild`**.
 
-- [ac-cake-build](#ac-cake-build)
-  - [Table of Contents](#table-of-contents)
-  - [Overview](#overview)
-  - [Script structure](#script-structure)
-    - [Project structure conventions](#project-structure-conventions)
-  - [Adding as Submodule](#adding-as-submodule)
-  - [Using the Build Scripts](#using-the-build-scripts)
-    - [Create Cake script](#create-cake-script)
-    - [Install tools](#install-tools)
-    - [Project structure and conventions](#project-structure-and-conventions)
-  - [Cloning Parent Project with Submodules](#cloning-parent-project-with-submodules)
-  - [Updating Build System](#updating-build-system)
-  - [Removing Submodule](#removing-submodule)
-  - [Versioning](#versioning)
-  - [Changelog](#changelog)
-
-## Overview
-
-This repository contains reusable Cake build scripts for .NET projects. 
-It provides standardized build tasks and definitions that can be shared across multiple projects as a Git submodule, ensuring consistent build processes and easy maintenance.
-
-## Script structure
-
-**Settings (`definitions.cake`)**
-
-`ProjectSettings` - Main configuration class:
-- `RepoOwner` - GitHub repository owner/organization
-- `RepoName` - GitHub repository name  
-- `SolutionName` - Solution file name
-- `CodeCoverage` - Code coverage configuration
-
-`CodeCoverageSettings` - Coverage filters (Coverlet format):
-- `IncludeFilter` - Assemblies to include, `[Assembly]Type` entries (default: `[SolutionName*]*`)
-- `ExcludeFilter` - Assemblies to exclude, `[Assembly]Type` entries (default: test assemblies, Microsoft libraries)
-- `ExcludeByFile` - Glob pattern for files to exclude (default: `**/*Designer.cs`)
-- `ExcludeByAttribute` - Attribute short name to exclude (default: `ExcludeFromCodeCoverage`)
-
-`BuildInfo` - Runtime build information:
-- `Target` - Build target (default: "Default")
-- `Config` - Build configuration (default: "Release")
-- `Version` - Semantic version information
-- `Repository` - Git repository state
-- `Paths` - Standard project paths
-
-**Available Tasks (`tasks.cake`)**
-
-Core Tasks:
-- `CleanAll` - Clean bin/obj directories and artifacts
-- `SetVersion` - Generate AssemblyVersion.cs with version info
-- `Restore` - Restore NuGet packages
-- `Build` - Build solution (Debug + Release for coverage)
-
-Testing Tasks:
-- `RunXunitTests` - Execute unit tests with Coverlet code coverage collection
-- `CleanPreviousTestResults` - Clean test artifacts
-- `GenerateCoverageReport` - Generate HTML coverage report (local only)
-- `UploadCoverage` - Upload coverage to Coveralls (CI only)
-- `RunUnitTests` - Combined test execution pipeline
-
-Release Tasks:
-- `CreateNugetPackages` - Pack NuGet packages
-- `UpdateReleaseNotesLink` - Update package release notes URL
-- `CreateRelease` - Create GitHub release (release branches only)
-- `CloseMilestone` - Close GitHub milestone (tagged builds only)
-
-Default Pipeline:
-`Default` → `Build` → `RunUnitTests` → `CreateNugetPackages` → `CreateRelease` → `CloseMilestone`
-
-### Project structure conventions
-
-**Required Directory Structure:**
-```
-project-root/
-├── .build/                    # Build system submodule
-├── src/
-│   ├── common/
-│   │   └── AssemblyVersion.cs # Generated version file
-│   ├── lib/                   # Library projects
-│   ├── tests/                 # Test projects
-│   ├── samples/               # Sample projects (optional)
-│   ├── [SolutionName].sln     # Solution file
-│   └── Directory.Build.props  # Common MSBuild properties
-├── artifacts/                 # Build output (auto-created)
-├── build.cake                 # Main build script
-├── GitVersion.yml         # Version calculation
-└── GitReleaseManager.yaml # GitHub release configuration  
+One command restores, builds, tests with code coverage, packs and releases a library, locally and on AppVeyor:
 
 ```
-
-**Required Configuration Files:**
-
-* `build.cake` - Main build script
-* `GitVersion.yml` - Version calculation
-* `GitReleaseManager.yaml` - GitHub release configuration  
-* `src/Directory.Build.props` - MSBuild properties
-
-`GitVersion.yml` example:
-```yaml
-branches: {}
-ignore:
-  sha: []
-tag-prefix: 'releases?/'
+Build → RunUnitTests → CreateNugetPackages → CreateRelease → CloseMilestone
 ```
 
-`GitReleaseManager.yaml` example:
-```yaml
-create:
-  include-footer: true
-  footer-heading: Where to get it
-  footer-content: You can download this release from [nuget.org](https://www.nuget.org/packages/package-name/{milestone})
-  footer-includes-milestone: true
+- **Versioning:** [GitVersion](https://gitversion.net) (GitFlow). Pull-request builds get a `0.<PR>.<build>` version.
+- **Tests:** xunit.v3 v4 on Microsoft.Testing.Platform (MTP). All test projects run on every target framework.
+- **Coverage:** [dotnet-coverage](https://learn.microsoft.com/dotnet/core/additional-tools/dotnet-coverage) writes one
+  merged Cobertura report. Locally it is turned into an HTML report; on CI it is uploaded to [Coveralls](https://coveralls.io).
+- **Releases:** [GitReleaseManager](https://github.com/GitTools/GitReleaseManager) creates a draft GitHub release from
+  the milestone on release/hotfix branches, and closes the milestone on tagged builds.
+
+## Table of contents
+
+- [Repository conventions](#repository-conventions)
+- [Getting started](#getting-started)
+- [Configuration](#configuration)
+- [Tasks](#tasks)
+- [AppVeyor](#appveyor)
+- [Migrating from 1.x](#migrating-from-1x)
+- [Developing this package](#developing-this-package)
+- [Versioning and changelog](#versioning-and-changelog)
+
+## Repository conventions
+
+The pipeline expects a standard layout. The `ValidateConventions` task checks it at the start of every build and
+fails with a clear message when something is missing.
+
+```
+<repo>/
+├── build/                     # Frosting build host (see Getting started)
+│   ├── Build.csproj
+│   └── Program.cs
+├── build.ps1 / build.sh
+├── global.json                # SDK pin + MTP test runner opt-in
+├── GitVersion.yml             # version calculation (required)
+├── GitReleaseManager.yaml     # GitHub release notes configuration
+├── appveyor.yml
+└── Src/
+    ├── <SolutionName>.slnx    # or .sln (.slnx preferred)
+    ├── Directory.Build.props  # must contain <PropertyGroup Label="Package"><PackageReleaseNotes>
+    ├── Common/
+    │   └── AssemblyVersion.cs # generated by SetVersion; link it into projects, git-ignore it
+    ├── Lib/                   # packable libraries (multi-target)
+    ├── Tests/                 # test projects, names contain "Tests" (xunit.v3 v4)
+    └── Samples/               # optional, never packed
 ```
 
-**Required Environment Variables:**
+- **Folder names:** PascalCase by default, configurable through `ProjectSettings.Conventions` (see
+  [Configuration](#configuration)).
+- **Case sensitivity:** names are case-sensitive on Linux. To catch problems early, `ValidateConventions` also
+  reports a case mismatch when running on Windows.
 
-**CI/CD (AppVeyor):**
-- `COVERALLS_REPO_TOKEN` - Coveralls.io API token
-- `GITHUB_TOKEN` - GitHub API token for releases
+**Required `global.json`.** It switches `dotnet test` to MTP mode:
 
-**NuGet Publishing:**
-- NuGet API key (encrypted in appveyor.yml)
-- Deploy triggers for develop/release branches and tags
-
-**Project Naming Conventions:**
-- Solution name matches repository name
-- Test projects contain "Tests" in name
-- Sample projects under `Samples/` folder
-- Library projects under `Lib/` folder
-
-## Adding as Submodule
-
-Always pin specific version when adding submodule. Assume `1.0.0` as a version to use.
-To add this repository as a submodule to your parent project.
-
-```bash
-git submodule add https://github.com/your-org/ac-cake-build.git .build
-cd .build
-git checkout 1.0.0
-cd ..
-git add .
-git commit -m "Add build system"
+```json
+{
+  "sdk": { "version": "10.0.100", "rollForward": "latestFeature" },
+  "test": { "runner": "Microsoft.Testing.Platform" }
+}
 ```
 
-## Using the Build Scripts
+**Recommended `Src/Directory.Build.props` fragments:**
 
-### Create Cake script
+```xml
+<PropertyGroup>
+  <!-- versions come from Common/AssemblyVersion.cs -->
+  <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
+  <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
+  <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
+</PropertyGroup>
+<ItemGroup Condition="Exists('$(MSBuildThisFileDirectory)Common/AssemblyVersion.cs')">
+  <Compile Include="$(MSBuildThisFileDirectory)Common/AssemblyVersion.cs" Link="Properties/AssemblyVersion.cs" />
+</ItemGroup>
+<PropertyGroup Label="Package">
+  <!-- rewritten to the GitHub release URL on tagged builds -->
+  <PackageReleaseNotes>https://github.com/owner/repo/releases</PackageReleaseNotes>
+</PropertyGroup>
+```
 
-Create a `build.cake` file in your project root:
+**Test projects** must run under MTP: reference `xunit.v3` 4.x and set `<OutputType>Exe</OutputType>`.
+Tests marked `[Trait("Category", "ManualTests")]` are excluded from the build.
+
+## Getting started
+
+1. Add `build/Build.csproj`:
+
+   ```xml
+   <Project Sdk="Microsoft.NET.Sdk">
+     <PropertyGroup>
+       <OutputType>Exe</OutputType>
+       <TargetFramework>net10.0</TargetFramework> <!-- net10.0 or net11.0 -->
+       <ImplicitUsings>enable</ImplicitUsings>
+       <RunWorkingDirectory>$(MSBuildProjectDirectory)</RunWorkingDirectory>
+     </PropertyGroup>
+     <ItemGroup>
+       <PackageReference Include="Alphacloud.CakeBuild" Version="2.0.0" />
+     </ItemGroup>
+   </Project>
+   ```
+
+2. Add `build/Program.cs`:
+
+   ```csharp
+   using Alphacloud.CakeBuild;
+   using Cake.Frosting;
+
+   var settings = new ProjectSettings("OrganizationName", "Repository-Name", "SolutionName");
+
+   return new CakeHost()
+       .UseAlphacloudCakeBuild(settings)
+       .Run(args);
+   ```
+
+3. Add `build.ps1` and `build.sh` to the repository root:
+
+   ```powershell
+   # build.ps1
+   dotnet run --project "$PSScriptRoot/build/Build.csproj" -- $args
+   exit $LASTEXITCODE;
+   ```
+
+   ```bash
+   #!/usr/bin/env bash
+   # build.sh
+   dotnet run --project "$(dirname "$0")/build/Build.csproj" -- "$@"
+   ```
+
+4. Run the build:
+
+   ```bash
+   ./build.ps1                          # Default pipeline, Release configuration
+   ./build.ps1 --target RunUnitTests    # tests + coverage report only
+   ./build.ps1 --buildConfig Debug
+   ./build.ps1 --tree                   # show the task graph
+   ```
+
+The build installs its tools (GitVersion, GitReleaseManager, dotnet-coverage, ReportGenerator) on first run,
+so you don't need to install `Cake.Tool` or any global tools.
+You can add tasks of your own to `build/`. `UseAlphacloudCakeBuild` registers `BuildContext`, so your
+tasks can derive from `FrostingTask<BuildContext>` and depend on the built-in tasks.
+
+## Configuration
 
 ```csharp
-#load "./.build/src/definitions.cake"
-
-var target = Argument("target", "Default");
-
-ProjectSettings settings = new ProjectSettings("OrganizationName", "Repository-Name", "SolutionName")
+var settings = new ProjectSettings("alphacloud", "Autofac.Extras.Quartz", "Autofac.Extras.Quartz")
 {
-    CodeCoverage =
-    {
-        // Coverlet filter syntax: [Assembly]TypeName
-        IncludeFilter = new List<string> { "[SolutionName.*]*" }
-    }
+    ReleaseTargetBranch = "master",           // target commitish of GitHub releases
 };
-
-Setup<BuildInfo>(context =>
-{
-    var buildInfo = BuildInfo.Get(context, settings);
-    CreateDirectory(buildInfo.Paths.ArtifactsDir);
-    CleanDirectory(buildInfo.Paths.ArtifactsDir);
-    return buildInfo;
-});
-
-#load "./.build/src/tasks.cake"
-
-RunTarget(target);
+settings.Conventions.SrcDir = "src";          // repository uses lower-case 'src'
+settings.Tests.ExcludedCategories.Add("Integration");
+settings.Tests.RunReleaseTests = false;
+settings.CodeCoverage.ExcludeModulePaths.Add(@".*Samples.*\.dll$");
 ```
 
-Update following parameters:
-* `OrganizationName` - GitHub organization name
-* `Repository-Name` - GitHub repository name
-* `SolutionName` - Solution name
+| Setting | Default | Description |
+|---|---|---|
+| `Conventions.SrcDir` | `Src` | Source root, relative to the repository root |
+| `Conventions.LibDir` / `TestsDir` / `SamplesDir` / `CommonDir` | `Lib` / `Tests` / `Samples` / `Common` | Sub-folders of `SrcDir` |
+| `Conventions.ArtifactsDir` | `artifacts` | Build output: `packages/`, `test-results/`, `coverage/`, `CodeCoverageReport/` |
+| `Tests.CategoryTrait` | `Category` | Trait used for test categories |
+| `Tests.ExcludedCategories` | `ManualTests` | Excluded via `--filter-not-trait` |
+| `Tests.RunReleaseTests` | `true` | Also run the tests against the Release build (no coverage) |
+| `Tests.SequentialTestModules` | `true` | `--max-parallel-test-modules 1` |
+| `CodeCoverage.IncludeModulePaths` | assemblies starting with the solution name | dotnet-coverage `ModulePath` include regexes |
+| `CodeCoverage.ExcludeModulePaths` | test assemblies | `ModulePath` exclude regexes |
+| `CodeCoverage.ExcludeAttributes` | `ExcludeFromCodeCoverage`, `GeneratedCode`, `DebuggerNonUserCode` | full attribute-name regexes |
+| `CodeCoverage.ExcludeSources` | `*Designer.cs`, `obj/` | source-path regexes |
+| `ReleaseTargetBranch` | `master` | Branch that GitHub releases target |
+
+Command-line arguments: `--target <task>` (default `Default`) and `--buildConfig <Debug|Release>` (default `Release`).
+
+## Tasks
+
+| Task | Runs when | Description |
+|---|---|---|
+| `Default` | always | Runs the full pipeline |
+| `Build` | always | Builds Debug (used for coverage) plus the requested configuration |
+| `ValidateConventions` | always | Checks the folder and naming conventions |
+| `SetVersion` | always | Generates `Src/Common/AssemblyVersion.cs` |
+| `UpdateAppVeyorBuildNumber` | AppVeyor | Sets the build number to the full version; errors are only logged |
+| `UpdateReleaseNotesLink` | tagged | Points `PackageReleaseNotes` at the GitHub release |
+| `Restore` | always | `dotnet restore` of the solution |
+| `RunUnitTests` | always | Runs the test pipeline; fails after coverage is reported if any test failed |
+| `CleanPreviousTestResults` | always | Removes old TRX and coverage output |
+| `RunXunitTests` | always | Wraps `dotnet test` (Debug) in `dotnet-coverage collect`; then runs the Release tests |
+| `GenerateCoverageReport` | local | HTML and text summary in `artifacts/CodeCoverageReport` |
+| `UploadCoverage` | CI | Uploads to Coveralls |
+| `CreateNugetPackages` | always | `dotnet pack` into `artifacts/packages` |
+| `CreateRelease` | upstream release/hotfix branch, not PR | Creates a draft GitHub release from the milestone |
+| `CloseMilestone` | upstream tag, not PR | Closes the GitHub milestone |
+| `CleanAll` | on demand | Cleans `bin`, `obj` and artifacts |
+
+"Upstream" means the AppVeyor repository name equals `owner/repo`, so builds of forks never create releases.
 
 
-### Install tools
+## AppVeyor
 
-Install following tools as part of build initization step
-* [Cake](https://cakebuild.net/)
-* [Coveralls](https://coveralls.io/)
+Required environment variables:
 
-```bash
-dotnet tool install Cake.Tool --version 1.3.0 --global
-dotnet tool install coveralls.net --version 4.0.1 --global
+| Variable | Purpose |
+|---|---|
+| `GITHUB_TOKEN` | GitHub release and milestone tasks (encrypt it in `appveyor.yml`) |
+| `COVERALLS_REPO_TOKEN` | Coveralls upload |
+| `COVERALLS_REPORTER_EXE` | Path to the Coveralls [coverage-reporter](https://github.com/coverallsapp/coverage-reporter) binary (default: `coveralls-windows.exe` on PATH) |
+| `CAKE_PATHS_TOOLS` | Optional: a cached tools folder, which speeds up builds |
+
+The AppVeyor image must have every runtime that the test projects target, because tests run on each target framework.
+
+```yaml
+image: Visual Studio 2026
+
+environment:
+  CAKE_PATHS_TOOLS: c:\tmp\cake\tools\
+  COVERALLS_REPORTER_EXE: C:\tools\coveralls-windows.exe
+  COVERALLS_REPO_TOKEN:
+    secure: <encrypted>
+  GITHUB_TOKEN:
+    secure: <encrypted>
+
+cache:
+  - c:\tmp\cake\tools -> build\*.csproj, appveyor.yml
+
+install:
+  - ps: New-Item -ItemType Directory -Force -Path C:\tools | Out-Null
+  - ps: Invoke-WebRequest -Uri "https://github.com/coverallsapp/coverage-reporter/releases/latest/download/coveralls-windows.exe" -OutFile $env:COVERALLS_REPORTER_EXE
+
+build_script:
+  - ps: ./build.ps1
+
+test: off
+
+artifacts:
+  - path: artifacts/packages/*.nupkg
+  - path: artifacts/packages/*.snupkg
+    type: NuGetPackage
+
+deploy:
+  - provider: NuGet          # pre-release packages
+    api_key: { secure: <encrypted> }
+    on:
+      branch: [develop, /releases?\/.*/, /hotfix(?:es)?\/.*/]
+  - provider: NuGet          # stable packages
+    api_key: { secure: <encrypted> }
+    on:
+      appveyor_repo_tag: true
 ```
 
-### Project structure and conventions
+When running on AppVeyor, TRX test results are uploaded automatically and appear in the build's **Tests** tab.
 
+For the release process, see the
+[Sharp Architecture release workflow](https://github.com/sharparchitecture/Sharp-Architecture/blob/master/docs/release-workflow.md).
+In short:
 
+- Builds on `develop` publish pre-release packages.
+- A build on a `release/x.y.z` branch creates a draft GitHub release.
+- Tagging `master` publishes the stable package and closes the milestone.
 
-## Cloning Parent Project with Submodules
+## Migrating from 1.x
 
-To clone a parent project that includes this submodule:
+Version 1.x was a git submodule (`.build/`) loaded with `#load` from `build.cake`. 2.0.0 is a NuGet package.
 
-```bash
-# Clone with submodules
-git clone --recurse-submodules <repo-url>
+1. Remove the submodule: `git rm -f .build`, then delete `.git/modules/.build`.
+2. Delete `build.cake`. Add `build/Build.csproj`, `build/Program.cs`, and `build.ps1`/`build.sh` as shown in
+   [Getting started](#getting-started).
+3. Move the `ProjectSettings` constructor arguments over unchanged.
+4. Rewrite the coverage filters. Coverlet `[Assembly]Type` filters become dotnet-coverage regexes:
 
-# Or if already cloned, initialize submodules
-git submodule update --init --recursive
+   | 1.x property | 2.0 property |
+   |---|---|
+   | `IncludeFilter` | `IncludeModulePaths` |
+   | `ExcludeFilter` | `ExcludeModulePaths` |
+   | `ExcludeByAttribute` | `ExcludeAttributes` |
+   | `ExcludeByFile` | `ExcludeSources` |
+5. Update the test projects:
+   - Move them to xunit.v3 4.x with `<OutputType>Exe</OutputType>`.
+   - Remove `coverlet.*`, `Appveyor.TestLogger`, `xunit.runner.visualstudio` and `Microsoft.NET.Test.Sdk`
+     (keep the last two only if Visual Studio's VSTest runner is still needed).
+   - Add the MTP runner to `global.json`.
+6. Make sure the folders follow the [conventions](#repository-conventions), or configure
+   `ProjectSettings.Conventions` to match your layout.
+7. In AppVeyor:
+   - Replace `dotnet tool install Cake.Tool` and `dotnet cake` with `./build.ps1`.
+   - Remove `--test-adapter-path`/`--logger AppVeyor` from any custom test steps.
+
+1.x remains available on its `1.0.0` tag for repositories that still use the submodule.
+
+## Developing this package
+
+```
+ac-cake-build/
+├── build/                           # builds this repository with the library itself (ProjectReference)
+├── pack-local.ps1                   # packs a development version into a local NuGet feed
+└── Src/
+    ├── Alphacloud.CakeBuild.slnx
+    ├── Lib/Alphacloud.CakeBuild/    # the package
+    ├── Tests/Alphacloud.CakeBuild.Tests/
+    └── Samples/SampleSolution/      # standalone consumer used for end-to-end validation
 ```
 
-## Updating Build System
+- Unit tests: `dotnet test --solution Src/Alphacloud.CakeBuild.slnx`
+- Self build: `./build.ps1`
+- End-to-end check against the sample consumer:
 
-To update the build system to a new tag version:
+  ```powershell
+  ./pack-local.ps1                     # packs 0.1.0 into W:/Data/nuget/temp, evicts it from the NuGet cache
+  cd Src/Samples/SampleSolution
+  ./build.ps1                          # restores Alphacloud.CakeBuild 0.1.0 from the local feed
+  ```
 
-```bash
-cd .build
-git fetch --tags
-git checkout 2.0.0  # Replace with new tag version
-cd ..
-git add .build
-git commit -m "Update build system to version 2.0.0"
-```
+  The feed folder must be a registered NuGet source, for example:
+  `dotnet nuget add source W:/Data/nuget/temp -n Temp`.
+  Use `-Feed` to pack into a different folder.
 
-## Removing Submodule
+## Versioning and changelog
 
-To remove the build system submodule:
-
-```bash
-git rm -f .build
-rm -f .git/modules/.build
-git add .gitmodules
-git commit -m "Remove build system submodule"
-```
-
-## Versioning
-
-This project follows [Semantic Versioning 2.0.0](https://semver.org/).
-
-Given a version number MAJOR.MINOR.PATCH:
-- **MAJOR**: Incompatible API changes
-- **MINOR**: Backwards-compatible functionality additions
-- **PATCH**: Backwards-compatible bug fixes
-
-## Changelog
-
-See [CHANGELOG.md](CHANGELOG.md) for a detailed history of changes.
-
-We follow the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format, which provides a curated, chronologically ordered list of notable changes for each version.
+This project follows [Semantic Versioning](https://semver.org/). See [CHANGELOG.md](CHANGELOG.md)
+([Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format).
 

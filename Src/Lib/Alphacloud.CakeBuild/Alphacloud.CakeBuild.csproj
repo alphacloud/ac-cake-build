@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Alphacloud.CakeBuild</RootNamespace>
+    <IsPackable>true</IsPackable>
+    <PackageId>Alphacloud.CakeBuild</PackageId>
+    <Description>Reusable Cake Frosting build pipeline (restore, build, test with dotnet-coverage, pack, GitHub release) for multi-target .NET libraries built locally and on AppVeyor.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Cake.Frosting" Version="7.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\..\README.md" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Alphacloud.CakeBuild.Tests" />
+  </ItemGroup>
+
+</Project>

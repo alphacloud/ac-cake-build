@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/Lib/">
+    <Project Path="Lib/Alphacloud.CakeBuild/Alphacloud.CakeBuild.csproj" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="Tests/Alphacloud.CakeBuild.Tests/Alphacloud.CakeBuild.Tests.csproj" />
+  </Folder>
+</Solution>

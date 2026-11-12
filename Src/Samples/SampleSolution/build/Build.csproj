@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RunWorkingDirectory>$(MSBuildProjectDirectory)</RunWorkingDirectory>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Local development version: run ac-cake-build/pack-local.ps1 first (feed: user NuGet source "Temp"). -->
+    <PackageReference Include="Alphacloud.CakeBuild" Version="0.1.0" />
+  </ItemGroup>
+</Project>

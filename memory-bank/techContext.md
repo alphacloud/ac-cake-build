@@ -36,6 +36,12 @@
   - `W:\vk\Projects\SharpArch\Sharp-Architecture` (`Src/`, `.slnx`, AppVeyor with mssql)
   - `W:\vk\Projects\alphacloud\Autofac.Extras.Quartz` (lowercase `src/`, `.sln`, so it needs `SrcDir="src"`)
 
+- Repo-wide tooling:
+  - **Unit tests:** `dotnet test --solution Src/Alphacloud.CakeBuild.slnx` takes about 25 s, close to the shell timeout,
+    so run it in the background.
+  - **Doc links:** check every link and anchor with a small PowerShell script that slugifies the headings of
+    README.md and docs/*.md and compares them with the `](...)` links.
+
 ## Commit conventions
 GitHub issue prefix: `#2 <imperative summary ≤100 chars, no trailing punctuation>`, blank line, then a "what" body.
 Mention a version only for major dependency bumps.

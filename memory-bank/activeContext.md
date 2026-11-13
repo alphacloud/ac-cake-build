@@ -1,6 +1,7 @@
 # Active Context
 
-_Last updated: 2026-11-12. Issue #2 implementation complete and validated locally; committed on `feature/cake-frosting`._
+_Last updated: 2026-11-12. Issue #2 is implemented, reviewed (`/code-review low`) and validated locally. It is
+committed on `feature/cake-frosting`, which is pushed to origin and tracks `origin/feature/cake-frosting`._
 
 ## Current state
 - The Frosting NuGet conversion is implemented according to `/plan.md`. The `.cake` scripts are deleted.
@@ -21,9 +22,12 @@ _Last updated: 2026-11-12. Issue #2 implementation complete and validated locall
 - All behaviour changes outside the original plan: accepted, and recorded in `plan.md` ("Behaviour changes accepted at
   code review") and the CHANGELOG.
 - TRX upload: now the separate `UploadTestResults` task.
-- Not acted on: release-branch matching uses `Contains` (as in 1.x); `--target CreateNugetPackages` doesn't depend on
-  `Build` (as in 1.x); Coveralls reporter is downloaded from `releases/latest` (unpinned); `COVERALLS_REPORTER_EXE` is
-  read in a task instead of in `BuildContext`.
+- Release-branch matching: fixed (`StartsWith`, not `Contains`). Tests cover nested names such as
+  `feature/release/x` and `bugfix/hotfixes/y`.
+- Still not acted on, by choice:
+  - `--target CreateNugetPackages` doesn't depend on `Build` (same as 1.x).
+  - The Coveralls reporter is downloaded from `releases/latest` (unpinned).
+  - `COVERALLS_REPORTER_EXE` is read in a task, not in `BuildContext`.
 
 ## Next steps / open items
 1. **Not validated: AppVeyor-only paths.** These are: the build-number update, TRX upload, Coveralls upload with
@@ -46,7 +50,22 @@ _Last updated: 2026-11-12. Issue #2 implementation complete and validated locall
      - Its Linux AppVeyor job runs `dotnet test --filter` directly.
 4. Release: merge to `develop`, then `release/2.0.0`, then tag `2.0.0` on master. The milestone `2.0.0` must exist.
 
+## Git state
+- Branch commits on top of `62e312e`:
+  - `721be8c` Frosting conversion
+  - `41bdf38` migration runbook
+  - `769cfeb` code-review fixes
+  - then the release-branch fix
+- History was rewritten once to remove a third-party reference before the branch was first pushed.
+- **Rule:** committed files must not name the user's employer, its paths or its internal projects. Git-ignored files
+  are fine.
+  - Before each commit, scan every file in `git ls-files` plus untracked files for these terms.
+  - Don't write the terms here, because this file is committed. Ask the user if unsure.
+  - The only reference paths allowed are the alphacloud and SharpArch ones in `techContext.md`.
+
 ## Preferences and insights
 - The user wants questions asked when something is unclear, and prefers decisions offered as options.
+- Code review: findings get triaged by the user one by one, and the user may choose "document as a requirement"
+  instead of a code fix (as with spaces in paths). Record each outcome in `plan.md` and the CHANGELOG.
 - Use the sample under `Src/Samples/` for development/validation, packed as 0.1.0 into the local feed.
 - `blueprints/planning.md` is the chronological change log (newest first).

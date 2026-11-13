@@ -11,6 +11,11 @@ public class RepositoryInfoTests
     [InlineData("Hotfixes/1.2.1", true)]
     [InlineData("develop", false)]
     [InlineData("feature/release-notes", false)]
+    [InlineData("feature/release/x", false)]
+    [InlineData("bugfix/hotfixes/y", false)]
+    [InlineData("user/releases/1.2.0", false)]
+    [InlineData("release", false)]
+    [InlineData("", false)]
     [InlineData(null, false)]
     public void IsReleaseBranch_DetectsGitFlowReleaseAndHotfixBranches(string? branch, bool expected)
     {

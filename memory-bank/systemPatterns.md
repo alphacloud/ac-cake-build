@@ -8,7 +8,7 @@
 | `CodeCoverageSettings` | dotnet-coverage regex lists: `IncludeModulePaths`, `ExcludeModulePaths`, `ExcludeAttributes`, `ExcludeSources` |
 | `TestSettings` | `CategoryTrait=Category`, `ExcludedCategories=[ManualTests]`, `RunReleaseTests=true`, `SequentialTestModules=true` |
 | `Paths` | Absolute paths built from root + conventions. Prefers `.slnx` over `.sln`. Artifacts: `packages/`, `test-results/{Debug,Release}`, `coverage/{codecoverage.config,coverage.cobertura.xml}`, `CodeCoverageReport/` |
-| `RepositoryInfo.Create(...)` | Pure GitFlow flags. `IsMain` = the AppVeyor repo name equals owner/repo (upstream, not a fork) |
+| `RepositoryInfo.Create(...)` | Pure GitFlow flags. `IsMain` = the AppVeyor repo name equals owner/repo (upstream, not a fork). `IsReleaseBranch` = the branch name **starts with** `release/`, `releases/`, `hotfix/` or `hotfixes/` (case-insensitive) |
 | `BuildVersion` (record) | `ForPullRequest(pr, build, sha, title)` → `0.pr.build` |
 | `ConventionValidator` | Returns a list of errors. `DirectoryExistsExact` checks case. Checks for `PropertyGroup[@Label=Package]/PackageReleaseNotes` |
 | `CoverageSettingsXml` | Generates the `<Configuration><CodeCoverage>` XML for `dotnet-coverage collect -s` |

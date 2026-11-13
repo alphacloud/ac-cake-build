@@ -15,7 +15,10 @@ public sealed class RepositoryInfo
     /// <remarks>Not used by built-in tasks; kept for consumer-defined tasks (e.g. pre-release-only steps).</remarks>
     public bool IsDevelopBranch { get; init; }
 
-    /// <summary>Branch is a release or hotfix branch.</summary>
+    /// <summary>
+    /// Branch is a GitFlow release or hotfix branch: its name <b>starts with</b> <c>release/</c>, <c>releases/</c>,
+    /// <c>hotfix/</c> or <c>hotfixes/</c> (case-insensitive). Nested names such as <c>feature/release/x</c> do not match.
+    /// </summary>
     public bool IsReleaseBranch { get; init; }
 
     /// <summary>Build was triggered by a tag.</summary>
@@ -40,7 +43,7 @@ public sealed class RepositoryInfo
             IsPullRequest = isPullRequest,
             IsTagged = isTagged,
             IsDevelopBranch = string.Equals(branchName, "develop", StringComparison.OrdinalIgnoreCase),
-            IsReleaseBranch = ReleaseBranchPrefixes.Any(p => branchName.Contains(p, StringComparison.OrdinalIgnoreCase)),
+            IsReleaseBranch = ReleaseBranchPrefixes.Any(p => branchName.StartsWith(p, StringComparison.OrdinalIgnoreCase)),
             IsMain = string.Equals($"{settings.RepoOwner}/{settings.RepoName}", repositoryName, StringComparison.OrdinalIgnoreCase),
         };
     }

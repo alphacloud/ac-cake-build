@@ -44,6 +44,8 @@ These changes were not in the original plan. All were reviewed and accepted:
   only when the configuration was `Release`.
 - Release-config test failures are deferred together with the Debug failures and re-thrown by `RunUnitTests` after
   coverage is reported. In 1.x the Release test run failed immediately.
+- `IsReleaseBranch` matches by **prefix** (`StartsWith`), not `Contains` as in 1.x. Nested branch names such as
+  `feature/release/x` no longer count as release branches.
 
 ## 1. Architecture
 

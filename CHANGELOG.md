@@ -57,6 +57,9 @@ NuGet package `Alphacloud.CakeBuild`. To upgrade, follow [docs/migrating-from-su
   Cake.AppVeyor addins.
 
 ### Fixed
+- Release branches are detected by prefix. A branch counts only when its name starts with `release/`,
+  `releases/`, `hotfix/` or `hotfixes/`. Before, the prefix could appear anywhere in the name, so a branch such as
+  `feature/release/x` matched and could create a GitHub release.
 - Repository information is calculated once per build.
 - The test pipeline fails after the coverage report and upload, so coverage is still published when tests fail.
 

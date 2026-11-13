@@ -203,6 +203,8 @@ Command-line arguments: `--target <task>` (default `Default`) and `--buildConfig
 | `CleanAll` | on demand | Cleans `bin`, `obj` and artifacts |
 
 "Upstream" means the AppVeyor repository name equals `owner/repo`, so builds of forks never create releases.
+A "release/hotfix branch" is a branch whose name **starts with** `release/`, `releases/`, `hotfix/` or `hotfixes/`
+(case-insensitive). Nested names such as `feature/release/x` are not release branches.
 
 ### Build state for custom tasks
 

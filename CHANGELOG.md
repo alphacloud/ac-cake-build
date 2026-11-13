@@ -19,10 +19,20 @@ NuGet package `Alphacloud.CakeBuild`. To upgrade, follow [docs/migrating-from-su
 - `Alphacloud.CakeBuild` NuGet package (net10.0, net11.0; Cake.Frosting 7.0.0) with `CakeHost.UseAlphacloudCakeBuild(settings)`.
 - Standardized repository layout, configurable through `ProjectSettings.Conventions` (`Src`, `Lib`, `Tests`, `Samples`, `Common`, `artifacts`).
 - `ValidateConventions` task (runs first in `Build`), which reports layout problems with actionable messages.
-- `ProjectSettings.Tests`: `ExcludedCategories`, `CategoryTrait`, `RunReleaseTests`, `SequentialTestModules`.
+- `ProjectSettings.Tests`: `ExcludedCategories`, `CategoryTrait`, `RunReleaseTests`, `SequentialTestModules`
+  (default `true`, which passes `--max-parallel-test-modules 1`).
 - `ProjectSettings.ReleaseTargetBranch` (previously hardcoded to `master`).
-- TRX test results are uploaded to AppVeyor.
+- `UploadTestResults` task (AppVeyor only): publishes the TRX test results to the AppVeyor Tests tab.
 - Support for `.slnx` solutions (preferred over `.sln`).
+- `ToolResolver`, the public helper that locates the pinned tools. It handles the `.exe` suffix on Windows.
+- Documented the `BuildContext` API for consumer tasks. `BuildVersion.NextMajor`, `BuildVersion.CommitHash`,
+  `RepositoryInfo.IsDevelopBranch` and `BuildContext.Target` are not used by built-in tasks; they are kept for
+  consumer tasks.
+
+### Requirements
+- The repository path and every path under it must not contain spaces. The test command is nested inside
+  `dotnet-coverage collect` as one argument.
+- Test projects must use xunit.v3 4.x on Microsoft.Testing.Platform, enabled through `global.json`.
 
 ### Changed
 - **Breaking:** tests run on xunit.v3 v4 / Microsoft.Testing.Platform, and coverage is collected with dotnet-coverage
@@ -32,6 +42,14 @@ NuGet package `Alphacloud.CakeBuild`. To upgrade, follow [docs/migrating-from-su
 - **Breaking:** `BuildInfo` is replaced by `BuildContext`. The default source folder is `Src`.
 - The NuGet version comes from GitVersion `SemVer` (GitVersion 6 removed `NuGetVersion`). Pull-request builds use `0.<PR>.<build>`.
 - Coveralls upload uses the coverage-reporter binary (`COVERALLS_REPORTER_EXE`).
+- `CreateRelease` and `CloseMilestone` fail fast with a clear message when `GITHUB_TOKEN` is missing.
+- `ValidateConventions` reports letter-case mismatches in folder names on every OS, not only Linux.
+- `Build` runs the Debug build used for coverage for every configuration other than `Debug`. Before, it ran only
+  for `Release`.
+- Release-config test failures are deferred like Debug failures. `RunUnitTests` re-throws them after coverage and
+  test results are reported.
+- A missing pinned tool (GitVersion, dotnet-coverage) now fails the build. Before, Cake fell back to whatever
+  version it found.
 - Tools are pinned: GitVersion.Tool 6.8.2, GitReleaseManager.Tool 0.20.0, dotnet-coverage 18.12.0, ReportGenerator 5.6.0.
 
 ### Removed

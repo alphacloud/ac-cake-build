@@ -14,6 +14,17 @@ _Last updated: 2026-11-12. Issue #2 implementation complete and validated locall
 - The never-tagged Coverlet `[Unreleased]` entries are folded into 2.0.0.
 - Commit prefix: `#2`.
 
+## Code review (2026-11-12, `/code-review low`, range 62e312e..HEAD), outcome per the user's decisions
+- Spaces in paths: documented as a requirement, not fixed in code.
+- `.exe` handling: centralized in `ToolResolver`, with tests.
+- Unused API: kept and documented.
+- All behaviour changes outside the original plan: accepted, and recorded in `plan.md` ("Behaviour changes accepted at
+  code review") and the CHANGELOG.
+- TRX upload: now the separate `UploadTestResults` task.
+- Not acted on: release-branch matching uses `Contains` (as in 1.x); `--target CreateNugetPackages` doesn't depend on
+  `Build` (as in 1.x); Coveralls reporter is downloaded from `releases/latest` (unpinned); `COVERALLS_REPORTER_EXE` is
+  read in a task instead of in `BuildContext`.
+
 ## Next steps / open items
 1. **Not validated: AppVeyor-only paths.** These are: the build-number update, TRX upload, Coveralls upload with
    `--base-path`, GitReleaseManager create/close, and PR versioning. Validate them on the first real AppVeyor build.

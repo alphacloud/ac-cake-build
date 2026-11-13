@@ -17,12 +17,13 @@
 | `BuildLifetime` | Setup: ensure the artifacts dir exists and clean it |
 | `CakeHostExtensions.UseAlphacloudCakeBuild(settings, workingDirectory="..")` | Registers settings in DI, then calls UseContext, UseLifetime, UseWorkingDirectory, AddAssembly and InstallTool(`Tools.All`) |
 | `Tools` | Pinned tool URIs |
+| `ToolResolver` | The **only** place that knows about `.exe`: `ExecutableName(name, isWindows?)` (unit tested). `Resolve(ctx, name)` throws `CakeException` when the tool is missing, so it never falls back to a stale or global copy |
 
 ## Task graph (`Tasks/*.cs`, `FrostingTask<BuildContext>`)
 ```
 Default ─► UpdateAppVeyorBuildNumber, Build, RunUnitTests, CreateNugetPackages, CreateRelease, CloseMilestone
 Build   ─► ValidateConventions, SetVersion, UpdateAppVeyorBuildNumber, UpdateReleaseNotesLink, Restore
-RunUnitTests ─► Build, CleanPreviousTestResults, RunXunitTests, GenerateCoverageReport, UploadCoverage
+RunUnitTests ─► Build, CleanPreviousTestResults, RunXunitTests, UploadTestResults, GenerateCoverageReport, UploadCoverage
 CleanAll (standalone)
 ```
 - Environment gating uses `ShouldRun`:
@@ -35,8 +36,14 @@ CleanAll (standalone)
 - **Deferred test failure:** `RunXunitTests` records failures in `context.TestFailure` and does not throw. Coverage
   report and upload still run, then `RunUnitTests` throws.
 - `RunXunitTests` runs `dotnet-coverage collect --settings ... --output-format cobertura --output ... "dotnet test ..."`
-  for Debug. When `RunReleaseTests && IsRelease`, it also runs plain `dotnet test` for Release. On AppVeyor it uploads
-  the TRX files (`AppVeyorTestResultsType.MSTest`).
+  for Debug. When `RunReleaseTests && IsRelease`, it also runs plain `dotnet test` for Release.
+- `UploadTestResults` is its own task, gated by `ShouldRun(IsAppVeyor)`. It uploads TRX files
+  (`AppVeyorTestResultsType.MSTest`); upload errors only log a warning.
+- **Requirement: no spaces in the repo path.** The `dotnet test` command line is nested inside `dotnet-coverage
+  collect` as one quoted argument. This is documented (README conventions, runbook blocker 5, CHANGELOG), not handled
+  in code.
+- Unused public API, kept on purpose and documented for consumer tasks: `BuildVersion.NextMajor`,
+  `BuildVersion.CommitHash`, `RepositoryInfo.IsDevelopBranch`, `BuildContext.Target`.
 - `UploadCoverage` runs `<COVERALLS_REPORTER_EXE> report <file> --format=cobertura --base-path=<root> --no-logo`.
 
 ## Design rules

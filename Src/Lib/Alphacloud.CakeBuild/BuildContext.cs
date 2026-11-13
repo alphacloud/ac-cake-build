@@ -47,6 +47,7 @@ public class BuildContext : FrostingContext
     public ProjectSettings Settings { get; }
 
     /// <summary>Requested target (<c>--target</c>, default <c>Default</c>).</summary>
+    /// <remarks>Not used by built-in tasks; kept for consumer-defined tasks and logging.</remarks>
     public string Target { get; }
 
     /// <summary>Build configuration (<c>--buildConfig</c>, default <c>Release</c>).</summary>
@@ -80,11 +81,10 @@ public class BuildContext : FrostingContext
     {
         // Force the pinned GitVersion.Tool (dotnet-gitversion) so a stale legacy GitVersion.exe in the tools
         // cache is never picked up. GitVersion 6 removed NuGetVersion; SemVer is its replacement.
-        var tool = context.Tools.Resolve(OperatingSystem.IsWindows() ? "dotnet-gitversion.exe" : "dotnet-gitversion");
         var gitVersion = context.GitVersion(new GitVersionSettings
         {
             OutputType = GitVersionOutput.Json,
-            ToolPath = tool,
+            ToolPath = ToolResolver.Resolve(context, "dotnet-gitversion"),
         });
 
         return new BuildVersion(

@@ -26,6 +26,24 @@ one `dotnet-coverage collect` wraps the whole `dotnet test` run. The release flo
 | Q4 | `[Unreleased]` Coverlet entries | Folded into 2.0.0 (dropped); 2.0.0 directly replaces 1.0.0 |
 | Q5 | Commit subject | `#2 Convert cake build scripts to Cake Frosting NuGet library` |
 | - | Dev/validation | The sample solution under `Src/Samples/` consumes package **0.1.0**, which is packed into the local feed `W:\Data\nuget\temp` (user-level NuGet source `Temp`) |
+| R1 | Paths | **No spaces** in the repository path or any path under it. This is a documented requirement, not handled in code: the test command is nested inside `dotnet-coverage collect` as one quoted argument. |
+| R2 | Tool lookup | All platform executable naming (`.exe` on Windows) goes through `ToolResolver`. A missing pinned tool fails the build instead of falling back to another version. |
+| R3 | Unused public API | `BuildVersion.NextMajor`, `BuildVersion.CommitHash`, `RepositoryInfo.IsDevelopBranch` and `BuildContext.Target` are kept and documented for consumer-defined tasks. |
+| R4 | TRX upload | A separate `UploadTestResults` task, gated with `ShouldRun(IsAppVeyor)`. Previously it was a branch inside `RunXunitTests`. |
+
+### Behaviour changes accepted at code review (2026-11-12)
+
+These changes were not in the original plan. All were reviewed and accepted:
+
+- `TestSettings.SequentialTestModules` (default `true`) controls `--max-parallel-test-modules 1`.
+- `CreateRelease` and `CloseMilestone` fail fast with a clear message when `GITHUB_TOKEN` is missing. 1.x passed an
+  empty token straight to GitReleaseManager.
+- `ValidateConventions` reports letter-case mismatches in folder names on Windows and macOS too, so they are caught
+  before a Linux CI build fails.
+- `Build` runs the extra Debug build (used for coverage) for every configuration other than `Debug`. In 1.x it ran
+  only when the configuration was `Release`.
+- Release-config test failures are deferred together with the Debug failures and re-thrown by `RunUnitTests` after
+  coverage is reported. In 1.x the Release test run failed immediately.
 
 ## 1. Architecture
 
@@ -108,7 +126,7 @@ Case matters on Linux, so Autofac.Extras.Quartz (whose source folder is `src/`) 
 
 - `Default` -> `UpdateAppVeyorBuildNumber`, `Build`, `RunUnitTests`, `CreateNugetPackages`, `CreateRelease`, `CloseMilestone`
 - `Build` -> `ValidateConventions`, `SetVersion`, `UpdateAppVeyorBuildNumber`, `UpdateReleaseNotesLink`, `Restore`
-- `RunUnitTests` -> `Build`, `CleanPreviousTestResults`, `RunXunitTests`, `GenerateCoverageReport`, `UploadCoverage`
+- `RunUnitTests` -> `Build`, `CleanPreviousTestResults`, `RunXunitTests`, `UploadTestResults`, `GenerateCoverageReport`, `UploadCoverage`
 - `CleanAll` (standalone)
 
 Changes compared to 1.x:
@@ -123,7 +141,7 @@ Changes compared to 1.x:
 - **Coverage:** one `dotnet-coverage collect -s codecoverage.config -f cobertura` call wraps `dotnet test`. The settings
   XML is generated from `CodeCoverageSettings` (module path, attribute and source regexes). The result is a single
   merged Cobertura file.
-- **Coveralls:** one `report` call with `--base-dir <repo root>`.
+- **Coveralls:** one `report` call with `--base-path=<repo root>` (the coverage-reporter flag name).
 - **Release tests:** `RunReleaseTests` runs the tests a second time in the Release config, without coverage. As in
   1.x, a test failure is deferred until the coverage output is written.
 - **Release target branch:** `TargetCommitish` is taken from `ProjectSettings.ReleaseTargetBranch` (default `master`).

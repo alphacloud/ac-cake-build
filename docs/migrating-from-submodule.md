@@ -46,6 +46,10 @@ Stop and ask, presenting the choices listed, when any of these is true:
    dotnet-coverage settings in 2.x filter by module, attribute and source path only. Offer to rewrite it as a
    source-path exclude or to drop it.
 4. **The package version from [Inputs](#inputs) does not resolve** (`dotnet package search` finds nothing).
+5. **The repository path contains a space**, for example `C:\My Projects\repo`, or a folder or project inside the
+   repository has a space in its name. Paths with spaces are not supported. Offer these choices:
+   - clone or move the repository to a path without spaces
+   - rename the folders that contain spaces
 
 ## Steps
 
@@ -62,6 +66,8 @@ Get-ChildItem -Directory -Name              # top-level layout; note the casing 
 Get-ChildItem -Recurse -Depth 1 -Include *.sln,*.slnx -Name
 git ls-files '*.csproj' | Select-String -Pattern 'Tests'
 Get-Content appveyor.yml, global.json, .config/dotnet-tools.json -ErrorAction Ignore
+(Get-Location).Path -match ' '                                  # must be False (blocker 5)
+git ls-files | Where-Object { $_ -match ' ' -and $_ -match '\.(csproj|slnx?|props)$' }   # must print nothing
 ```
 
 From `build.cake`, capture:
@@ -378,6 +384,7 @@ on any built-in task. Built-in task names are reserved.
 | `error CS0579: Duplicate 'AssemblyVersion' attribute` | SDK still generates version attributes | step 4 `Generate*Attribute=false` |
 | `RunXunitTests` succeeds but coverage report is empty or shows 0 assemblies | include regex matches nothing | print `artifacts/coverage/codecoverage.config` and fix `IncludeModulePaths` |
 | test count lower than baseline | `ManualTests` exclusion, or a trait name other than `Category` | compare with baseline; set `Tests.CategoryTrait` / `ExcludedCategories` |
+| `RunXunitTests` fails right away: `dotnet test` reports an unknown argument, or a path is cut off at a space | the repository path contains a space | blocker 5: move the repository to a path without spaces |
 | `Tool 'dotnet-coverage' was not found` | tool install failed (offline / proxy) | rerun with network access; check `CAKE_PATHS_TOOLS` |
 | `CreateRelease` fails locally | `GITHUB_TOKEN` set and running as upstream; normally skipped | expected only on CI; unset the variable locally |
 

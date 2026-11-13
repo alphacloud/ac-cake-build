@@ -56,6 +56,10 @@ fails with a clear message when something is missing.
   [Configuration](#configuration)).
 - **Case sensitivity:** names are case-sensitive on Linux. To catch problems early, `ValidateConventions` also
   reports a case mismatch when running on Windows.
+- **No spaces in paths:** the full path of the repository checkout, and every path under it, must not contain
+  spaces. The test command is passed through `dotnet-coverage collect` as a single argument, and nested quoting
+  breaks on spaces. Use, for example, `C:\work\my-lib`, not `C:\My Projects\my-lib`. On AppVeyor, set
+  `clone_folder` to a path without spaces.
 
 **Required `global.json`.** It switches `dotnet test` to MTP mode:
 
@@ -190,6 +194,7 @@ Command-line arguments: `--target <task>` (default `Default`) and `--buildConfig
 | `RunUnitTests` | always | Runs the test pipeline; fails after coverage is reported if any test failed |
 | `CleanPreviousTestResults` | always | Removes old TRX and coverage output |
 | `RunXunitTests` | always | Wraps `dotnet test` (Debug) in `dotnet-coverage collect`; then runs the Release tests |
+| `UploadTestResults` | AppVeyor | Publishes the TRX files to the AppVeyor Tests tab; upload errors are only logged |
 | `GenerateCoverageReport` | local | HTML and text summary in `artifacts/CodeCoverageReport` |
 | `UploadCoverage` | CI | Uploads to Coveralls |
 | `CreateNugetPackages` | always | `dotnet pack` into `artifacts/packages` |
@@ -198,6 +203,23 @@ Command-line arguments: `--target <task>` (default `Default`) and `--buildConfig
 | `CleanAll` | on demand | Cleans `bin`, `obj` and artifacts |
 
 "Upstream" means the AppVeyor repository name equals `owner/repo`, so builds of forks never create releases.
+
+### Build state for custom tasks
+
+Custom tasks in `build/` derive from `FrostingTask<BuildContext>` and read everything from the context:
+
+| Member | Description |
+|---|---|
+| `Settings` | the `ProjectSettings` you passed in |
+| `Paths` | absolute paths resolved from the conventions (solution, artifacts, coverage, packages, ...) |
+| `Config`, `IsRelease`, `IsLocal`, `IsAppVeyor` | build configuration and environment |
+| `Repository` | `IsMain`, `IsTagged`, `IsPullRequest`, `IsReleaseBranch`, `IsDevelopBranch`, `Branch` |
+| `Version` | `NuGet`, `Full`, `Informational`, `Milestone`, `NextMajor`, `CommitHash` |
+| `GitHubToken`, `Target` | `GITHUB_TOKEN` and the requested `--target` |
+
+`Version.NextMajor`, `Version.CommitHash`, `Repository.IsDevelopBranch` and `Target` are not used by the built-in
+tasks. They are part of the public API for your own tasks, for example to stamp an artifact with the commit, run a
+step only on `develop`, or add an upper version bound such as `[2.0.0, NextMajor)`.
 
 
 ## AppVeyor
@@ -215,6 +237,7 @@ The AppVeyor image must have every runtime that the test projects target, becaus
 
 ```yaml
 image: Visual Studio 2026
+clone_folder: c:\work\my-lib       # no spaces: see Repository conventions
 
 environment:
   CAKE_PATHS_TOOLS: c:\tmp\cake\tools\

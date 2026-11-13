@@ -12,6 +12,7 @@ public sealed class RepositoryInfo
     public bool IsMain { get; init; }
 
     /// <summary>Branch is <c>develop</c>.</summary>
+    /// <remarks>Not used by built-in tasks; kept for consumer-defined tasks (e.g. pre-release-only steps).</remarks>
     public bool IsDevelopBranch { get; init; }
 
     /// <summary>Branch is a release or hotfix branch.</summary>

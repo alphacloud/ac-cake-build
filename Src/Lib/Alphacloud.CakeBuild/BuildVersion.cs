@@ -1,12 +1,18 @@
 namespace Alphacloud.CakeBuild;
 
-/// <summary>Version numbers used by the build.</summary>
-/// <param name="NuGet">Package version (GitVersion <c>SemVer</c>).</param>
-/// <param name="Full">Full build metadata, used as the AppVeyor build number.</param>
-/// <param name="Informational">Assembly informational version.</param>
-/// <param name="NextMajor">Next major version, e.g. <c>3.0.0</c>.</param>
-/// <param name="CommitHash">Commit SHA.</param>
-/// <param name="Milestone">Major.Minor.Patch, used as assembly version and GitHub milestone name.</param>
+/// <summary>
+/// Version numbers calculated once per build and exposed through <see cref="BuildContext.Version"/>.
+/// Members not consumed by the built-in tasks (<see cref="NextMajor"/>, <see cref="CommitHash"/>) are public API
+/// kept for consumer-defined tasks, e.g. version-range package references or commit-stamped artifacts.
+/// </summary>
+/// <param name="NuGet">Package version (GitVersion <c>SemVer</c>); used by <c>CreateNugetPackages</c>.</param>
+/// <param name="Full">Full build metadata; used as the AppVeyor build number.</param>
+/// <param name="Informational">Assembly informational version; used by <c>SetVersion</c>.</param>
+/// <param name="NextMajor">Next major version, e.g. <c>3.0.0</c>. Not used by built-in tasks; for consumer tasks.</param>
+/// <param name="CommitHash">Commit SHA. Not used by built-in tasks; for consumer tasks.</param>
+/// <param name="Milestone">
+/// <c>Major.Minor.Patch</c>; used as assembly/file version, GitHub milestone name and release tag.
+/// </param>
 public sealed record BuildVersion(
     string NuGet,
     string Full,

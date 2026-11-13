@@ -52,7 +52,7 @@ public sealed class UploadCoverageTask : FrostingTask<BuildContext>
         }
 
         var reporter = context.EnvironmentVariable("COVERALLS_REPORTER_EXE")
-                       ?? (OperatingSystem.IsWindows() ? "coveralls-windows.exe" : "coveralls");
+                       ?? ToolResolver.ExecutableName(OperatingSystem.IsWindows() ? "coveralls-windows" : "coveralls");
         var exitCode = context.StartProcess(reporter, new ProcessSettings
         {
             Arguments = new ProcessArgumentBuilder()

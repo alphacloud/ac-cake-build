@@ -63,8 +63,6 @@ public sealed class RunXunitTestsTask : FrostingTask<BuildContext>
             Execute(context, "dotnet", releaseArgs, "Release tests", failures);
         }
 
-        UploadTestResults(context);
-
         if (failures.Count > 0)
             context.TestFailure = new CakeException("Test run failed: " + string.Join("; ", failures));
     }
@@ -77,11 +75,20 @@ public sealed class RunXunitTestsTask : FrostingTask<BuildContext>
         context.Error("{0} failed with exit code {1}", name, exitCode);
         failures.Add($"{name} (exit code {exitCode})");
     }
+}
 
-    private static void UploadTestResults(BuildContext context)
+/// <summary>
+/// Publishes TRX test results to the AppVeyor Tests tab (AppVeyor only). Upload failures are logged, not fatal.
+/// </summary>
+[TaskName("UploadTestResults")]
+public sealed class UploadTestResultsTask : FrostingTask<BuildContext>
+{
+    /// <inheritdoc />
+    public override bool ShouldRun(BuildContext context) => context.IsAppVeyor;
+
+    /// <inheritdoc />
+    public override void Run(BuildContext context)
     {
-        if (!context.IsAppVeyor)
-            return;
         var appVeyor = context.BuildSystem().AppVeyor;
         foreach (var trx in context.GetFiles($"{context.Paths.TestResultsDir}/**/*.trx"))
         {
@@ -97,11 +104,12 @@ public sealed class RunXunitTestsTask : FrostingTask<BuildContext>
     }
 }
 
-/// <summary>Test pipeline; re-throws deferred test failures after coverage reporting.</summary>
+/// <summary>Test pipeline; re-throws deferred test failures after results and coverage are reported.</summary>
 [TaskName("RunUnitTests")]
 [IsDependentOn(typeof(BuildTask))]
 [IsDependentOn(typeof(CleanPreviousTestResultsTask))]
 [IsDependentOn(typeof(RunXunitTestsTask))]
+[IsDependentOn(typeof(UploadTestResultsTask))]
 [IsDependentOn(typeof(GenerateCoverageReportTask))]
 [IsDependentOn(typeof(UploadCoverageTask))]
 public sealed class RunUnitTestsTask : FrostingTask<BuildContext>
@@ -113,11 +121,4 @@ public sealed class RunUnitTestsTask : FrostingTask<BuildContext>
             throw context.TestFailure;
         context.Information("Done Test");
     }
-}
-
-internal static class ToolResolver
-{
-    public static FilePath Resolve(ICakeContext context, string name) =>
-        context.Tools.Resolve(OperatingSystem.IsWindows() ? name + ".exe" : name)
-        ?? throw new CakeException($"Tool '{name}' was not found. Is it installed via UseAlphacloudCakeBuild()?");
 }

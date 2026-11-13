@@ -264,32 +264,31 @@ In short:
 
 ## Migrating from 1.x
 
-Version 1.x was a git submodule (`.build/`) loaded with `#load` from `build.cake`. 2.0.0 is a NuGet package.
+In 1.x, the build was a git submodule (`.build/`) loaded with `#load` from `build.cake`. In 2.0 it is a NuGet
+package. The full step-by-step runbook is
+**[docs/migrating-from-submodule.md](https://github.com/alphacloud/ac-cake-build/blob/master/docs/migrating-from-submodule.md)**.
+It covers the inventory, baseline, removal, layout, Frosting host, xunit.v3/MTP port, verification, CI changes, and
+translation tables for settings and coverage filters.
 
-1. Remove the submodule: `git rm -f .build`, then delete `.git/modules/.build`.
-2. Delete `build.cake`. Add `build/Build.csproj`, `build/Program.cs`, and `build.ps1`/`build.sh` as shown in
-   [Getting started](#getting-started).
-3. Move the `ProjectSettings` constructor arguments over unchanged.
-4. Rewrite the coverage filters. Coverlet `[Assembly]Type` filters become dotnet-coverage regexes:
+The runbook is written so an AI coding agent can carry out the migration on its own. To hand it over, open the
+consumer repository and prompt:
 
-   | 1.x property | 2.0 property |
-   |---|---|
-   | `IncludeFilter` | `IncludeModulePaths` |
-   | `ExcludeFilter` | `ExcludeModulePaths` |
-   | `ExcludeByAttribute` | `ExcludeAttributes` |
-   | `ExcludeByFile` | `ExcludeSources` |
-5. Update the test projects:
-   - Move them to xunit.v3 4.x with `<OutputType>Exe</OutputType>`.
-   - Remove `coverlet.*`, `Appveyor.TestLogger`, `xunit.runner.visualstudio` and `Microsoft.NET.Test.Sdk`
-     (keep the last two only if Visual Studio's VSTest runner is still needed).
-   - Add the MTP runner to `global.json`.
-6. Make sure the folders follow the [conventions](#repository-conventions), or configure
-   `ProjectSettings.Conventions` to match your layout.
-7. In AppVeyor:
-   - Replace `dotnet tool install Cake.Tool` and `dotnet cake` with `./build.ps1`.
-   - Remove `--test-adapter-path`/`--logger AppVeyor` from any custom test steps.
+> Migrate this repository from the ac-cake-build submodule to the Alphacloud.CakeBuild NuGet package by following
+> https://github.com/alphacloud/ac-cake-build/blob/master/docs/migrating-from-submodule.md.
+> Stop at its blockers and report using its template.
 
-1.x remains available on its `1.0.0` tag for repositories that still use the submodule.
+What changes, in short:
+
+| Area | 1.x | 2.0 |
+|---|---|---|
+| Entry point | `build.cake` + `#load "./.build/*.cake"`, `dotnet cake` | `build/Build.csproj` → `Alphacloud.CakeBuild`, `./build.ps1` |
+| Settings | `ProjectSettings` + `Setup<BuildInfo>` | same `ProjectSettings` constructor, passed to `UseAlphacloudCakeBuild` |
+| Tests | xunit 2 / VSTest, Coverlet or OpenCover | xunit.v3 4.x on MTP, dotnet-coverage |
+| Coverage filters | `IncludeFilter` / `ExcludeFilter` / `ExcludeByAttribute` / `ExcludeByFile` (`[Assembly]Type`) | `IncludeModulePaths` / `ExcludeModulePaths` / `ExcludeAttributes` / `ExcludeSources` (regex) |
+| Layout | implicit `src/` | `Src/{Lib,Tests,Samples,Common}`, enforced by `ValidateConventions` and configurable |
+| AppVeyor | `Cake.Tool`, `coveralls.net`, `--logger AppVeyor` | `./build.ps1`, coverage-reporter binary, TRX upload built in |
+
+1.x stays available on its `1.0.0` tag for repositories that still use the submodule.
 
 ## Developing this package
 

@@ -13,6 +13,8 @@
         net10.0; one ManualTests test)
   - [x] Self-build `build/`, `appveyor.yml`, `GitVersion.yml`, `GitReleaseManager.yaml`, `.gitignore`, `global.json`
   - [x] Docs: README, CHANGELOG 2.0.0, AGENTS.md, blueprints, memory bank
+  - [x] Migration runbook `docs/migrating-from-submodule.md` (written for agents; README links it, with a hand-off prompt)
+  - [ ] Migrate the consumers with the runbook (Autofac.Extras.Quartz, Sharp-Architecture)
 
 ## Validation results (local, 2026-11-12)
 - `--tree` shows the expected graph.

@@ -19,8 +19,20 @@ _Last updated: 2026-11-12. Issue #2 implementation complete and validated locall
    `--base-path`, GitReleaseManager create/close, and PR versioning. Validate them on the first real AppVeyor build.
 2. `appveyor.yml` contains `REPLACE_WITH_ENCRYPTED_*` placeholders. Owner action: encrypt the GitHub, Coveralls and
    NuGet tokens.
-3. Migrate the real consumers (SharpArch, Autofac.Extras.Quartz). SharpArch also needs xunit.v3 4.x/MTP and an
-   `.slnx` update. Quartz needs `SrcDir="src"` or a rename to `Src`.
+3. Migrate the real consumers (SharpArch, Autofac.Extras.Quartz) by following the runbook
+   **`docs/migrating-from-submodule.md`**, which an agent can execute on its own. Hand-off prompt: README
+   "Migrating from 1.x". Known findings:
+   - **Quartz:**
+     - `.build` is a vendored copy (mode 100644), not a real submodule.
+     - Its `.gitignore` line 14 (`build/`) hides `build/Build.csproj`.
+     - It uses lowercase `src`.
+     - Tests are xunit 2.9.3 with `Appveyor.TestLogger`.
+     - `.config/dotnet-tools.json` contains cake.tool and coveralls.net.
+   - **SharpArch:**
+     - `.build` is also vendored.
+     - Tests are xunit.v3 3.2.2 plus coverlet.msbuild.
+     - It has a legacy mono `build.sh` bootstrapper.
+     - Its Linux AppVeyor job runs `dotnet test --filter` directly.
 4. Release: merge to `develop`, then `release/2.0.0`, then tag `2.0.0` on master. The milestone `2.0.0` must exist.
 
 ## Preferences and insights

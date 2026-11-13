@@ -10,9 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.0.0]
 
 Replaces 1.0.0. The `#load`-able Cake scripts have been rewritten as a Cake Frosting library, distributed as the
-NuGet package `Alphacloud.CakeBuild`. See README "Migrating from 1.x".
+NuGet package `Alphacloud.CakeBuild`. To upgrade, follow [docs/migrating-from-submodule.md](docs/migrating-from-submodule.md).
 
 ### Added
+- Migration runbook `docs/migrating-from-submodule.md` for moving consumer repositories from the 1.x submodule to the
+  NuGet package. It is written so an AI coding agent can run it on its own: ordered steps with checks, stop-and-ask
+  blockers, settings and coverage-filter translation tables, a failure-symptom table, and a report template.
 - `Alphacloud.CakeBuild` NuGet package (net10.0, net11.0; Cake.Frosting 7.0.0) with `CakeHost.UseAlphacloudCakeBuild(settings)`.
 - Standardized repository layout, configurable through `ProjectSettings.Conventions` (`Src`, `Lib`, `Tests`, `Samples`, `Common`, `artifacts`).
 - `ValidateConventions` task (runs first in `Build`), which reports layout problems with actionable messages.

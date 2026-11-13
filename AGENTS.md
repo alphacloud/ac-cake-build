@@ -19,6 +19,7 @@ lives only on the `1.0.0` tag.
 
 ```
 build/                                  # builds this repo with the library itself (ProjectReference)
+docs/migrating-from-submodule.md        # agent-executable 1.x -> 2.x consumer migration runbook
 pack-local.ps1                          # packs dev version 0.1.0 -> W:/Data/nuget/temp (NuGet source "Temp"), evicts cache
 Src/
 ├── Alphacloud.CakeBuild.slnx
@@ -61,5 +62,8 @@ The pipeline: `Default` → `Build` → `RunUnitTests` → `CreateNugetPackages`
 
 - `README.md` is the consumer-facing source of truth: conventions, getting started, configuration, tasks,
   AppVeyor, and migrating from 1.x.
+- `docs/migrating-from-submodule.md` is the runbook for **migrating a consumer repository** from the 1.x submodule.
+  Update it whenever settings, task names, conventions, or the consumer files (`build/`, `global.json`, `appveyor.yml`)
+  change.
 - `CHANGELOG.md` uses the Keep a Changelog format; the current version is 2.0.0.
 - `memory-bank/` holds the agent working memory. `plan.md` is the conversion plan (issue #2).

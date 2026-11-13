@@ -4,6 +4,32 @@ Chronological log of notable changes to this repo. Newest entries at the top.
 
 ---
 
+## 2026-11-12 — Agent-executable migration runbook (#2)
+
+**Change:** Added `docs/migrating-from-submodule.md`. The README "Migrating from 1.x" section now summarizes the
+changes, links to the runbook, and gives a hand-off prompt for an agent. CHANGELOG 2.0.0 and AGENTS.md now
+reference the runbook.
+
+**Why:** Each consumer repository (SharpArch, Autofac.Extras.Quartz, ...) has to be migrated. The runbook lets an
+AI agent do that unattended and predictably.
+
+**Shape:**
+- Definition of done, inputs, and the cases where the agent must stop and ask the user (non-xunit tests, custom
+  tasks, type-level coverage filters, the package not resolving).
+- Nine ordered steps, each ending with an observable check.
+- Reference tables: settings, coverage filters, custom tasks, failure symptoms.
+- A report template for the agent's final summary.
+
+**Verified:**
+- Every internal link and anchor resolves.
+- The coverage regexes in the guide were tested against real module paths.
+- Frosting discovers custom tasks in the host assembly without `AddAssembly`.
+- Running `dotnet test` without MTP in `global.json` produces the documented error messages.
+- The guide's pitfalls were checked against Autofac.Extras.Quartz: it has a vendored `.build` (mode 100644), its
+  `.gitignore` rule `build/` hides `build/Build.csproj`, and it uses a lowercase `src`.
+
+---
+
 ## 2026-11-12 — Convert to Cake Frosting NuGet package `Alphacloud.CakeBuild` (#2)
 
 **Change:**
